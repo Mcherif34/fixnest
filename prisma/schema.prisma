@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id             String       @id @default(cuid())
+  name           String?
+  email          String?      @unique
+  emailVerified  DateTime?
+  hashedPassword String?
+  image          String?
+  accounts       Account[]
+  sessions       Session[]
+  organizationId String       @default("clov5edre0005vez8oenqadje")
+  role           String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  comments       Comment[]
+  tasks          Task[]
+  // memberId       String
+  // member         Team         @relation(fields: [memberId], references: [id])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Organization {
+  id             String   @id @default(cuid())
+  name           String
+  responsable    String
+  isOrganization Boolean  @default(true)
+  address        String?
+  email          String?
+  phone          String?  @unique
+  website        String?
+  users          User[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      Status   @default(InProgress)
+  startDate   String
+  endDate     String?
+  budget      String?
+  Issue       Issue[]
+  tasks       Task[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  // memebers  User[]
+  projectId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id            String    @id @default(cuid())
+  projectId     String
+  userId        String
+  title         String
+  description   String
+  deadline      DateTime
+  status        Status
+  priority      Priority
+  assignedUsers User[]
+  comments      Comment[]
+  project       Project   @relation(fields: [projectId], references: [id])
+}
+
+model Tag {
+  id  String @id @default(cuid())
+  tag String
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  comment   String
+  timestamp DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  task      Task     @relation(fields: [taskId], references: [id])
+}
+
+enum Status {
+  Pending
+  InProgress
+  Completed
+}
+
+model Issue {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   String
+  issueType   IssueType @relation(fields: [issueTypeId], references: [id])
+  issueTypeId String
+  priority    Priority
+  status      Status
+}
+
+model IssueType {
+  id    String  @id @default(cuid())
+  name  String
+  Issue Issue[]
+}
+
+enum Priority {
+  Low
+  Medium
+  High
+}
